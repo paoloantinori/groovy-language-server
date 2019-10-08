@@ -21,9 +21,13 @@
     "Groovy",
     "Grails"
   ],
-  "main": "extension",
+  "main": "./extension.js",
   "engines": {
     "vscode": "^1.36.0"
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
   },
   "devDependencies": {
     "@types/node": "^10.14.12",

@@ -7,11 +7,34 @@
 			"windows": {
 				"command": "./gradlew.bat"
 			},
+			"dependsOn": ["clean", "run_tsc"],
 			"args": ["build"],
 			"group": {
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			"label": "run_tsc",
+			"command": "tsc",
+			"windows": {
+				"command": "tsc"
+			},
+			"args": ["-p", "./"],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "clean",
+			"command": "rm",
+			"args": ["-rf", "./build"],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
 		}
+
 	]
 }

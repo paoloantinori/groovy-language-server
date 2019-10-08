@@ -71,6 +71,7 @@ function restartLanguageServer() {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+  console.log("Activating Groovy LSP");
   extensionContext = context;
   javaPath = findJava();
   vscode.workspace.onDidChangeConfiguration(onDidChangeConfiguration);
@@ -84,12 +85,14 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
+  console.log("Deactivating Groovy LSP");
   extensionContext = null;
 }
 
 function startLanguageServer() {
   if (!extensionContext) {
     //something very bad happened!
+    console.log("something very bad happened!");
     return;
   }
   /*if (vscode.workspace.workspaceFolders === undefined) {
@@ -115,6 +118,7 @@ function startLanguageServer() {
   }*/
   if (!javaPath) {
     vscode.window.showErrorMessage(MISSING_JAVA_ERROR);
+    console.log(MISSING_JAVA_ERROR);
     return;
   }
 
@@ -147,24 +151,30 @@ function startLanguageServer() {
           path.resolve(extensionContext.extensionPath, "bin", "groovy-language-server-all.jar")
         ];
         //uncomment to allow a debugger to attach to the language server
-        //args.unshift("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005,quiet=y");
+        args.unshift("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005,quiet=y");
         let executable: Executable = {
           command: javaPath,
           args: args
         };
+        console.log("Groovy LSP Executable: " + javaPath);
+        console.log("Groovy LSP args: " + args);
+        
         languageClient = new LanguageClient(
           "groovy",
           "Groovy Language Server",
           executable,
           clientOptions
         );
-        languageClient.onReady().then(resolve, reason => {
-          resolve();
-          vscode.window.showErrorMessage(STARTUP_ERROR);
-        });
+        languageClient.onReady().then(
+          ()=> {}, 
+          error => {
+            resolve();
+            vscode.window.showErrorMessage(STARTUP_ERROR);
+          });
         let disposable = languageClient.start();
         extensionContext.subscriptions.push(disposable);
       });
     }
   );
+  console.log("Started Groovy LSP");
 }

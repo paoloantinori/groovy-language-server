@@ -25,6 +25,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.camel.lsp.groovy.CamelUnitFactory;
 import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
@@ -44,7 +45,7 @@ import net.prominic.groovyls.config.ICompilationUnitFactory;
 public class GroovyLanguageServer implements LanguageServer, LanguageClientAware {
 
     public static void main(String[] args) {
-        GroovyLanguageServer server = new GroovyLanguageServer();
+        GroovyLanguageServer server = new GroovyLanguageServer(new CamelUnitFactory());
         Launcher<LanguageClient> launcher = Launcher.createLauncher(server, LanguageClient.class, System.in,
                 System.out);
         server.connect(launcher.getRemoteProxy());
