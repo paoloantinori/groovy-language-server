@@ -103,9 +103,15 @@ public class GroovyServices implements TextDocumentService, WorkspaceService, La
 	private Map<URI, List<Diagnostic>> prevDiagnosticsByFile;
 	private FileContentsTracker fileContentsTracker = new FileContentsTracker();
 	private URI previousContext = null;
+	private int compilationPhase = Phases.CANONICALIZATION;
 
 	public GroovyServices(ICompilationUnitFactory factory) {
 		compilationUnitFactory = factory;
+	}
+
+	public GroovyServices(ICompilationUnitFactory factory, int compilationPhase) {
+		compilationUnitFactory = factory;
+		this.compilationPhase = compilationPhase;
 	}
 
 	public void setWorkspaceRoot(Path workspaceRoot) {
@@ -397,7 +403,7 @@ public class GroovyServices implements TextDocumentService, WorkspaceService, La
 			//AST is completely built after the canonicalization phase
 			//for code intelligence, we shouldn't need to go further
 			//http://groovy-lang.org/metaprogramming.html#_compilation_phases_guide
-			compilationUnit.compile(Phases.CANONICALIZATION);
+			compilationUnit.compile(compilationPhase);
 		} catch (MultipleCompilationErrorsException e) {
 			// ignore
 		} catch (GroovyBugError e) {

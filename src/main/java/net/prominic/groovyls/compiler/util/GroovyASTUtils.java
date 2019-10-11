@@ -44,6 +44,7 @@ import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.expr.VariableExpression;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
+import org.codehaus.groovy.transform.stc.StaticTypesMarker;
 
 import net.prominic.groovyls.compiler.ast.ASTNodeVisitor;
 
@@ -176,7 +177,7 @@ public class GroovyASTUtils {
     }
 
     public static List<PropertyNode> getPropertiesForLeftSideOfPropertyExpression(Expression node,
-            ASTNodeVisitor astVisitor) {
+                                                                                  ASTNodeVisitor astVisitor) {
         ClassNode classNode = getTypeOfNode(node, astVisitor);
         if (classNode != null) {
             boolean statics = node instanceof ClassExpression;
@@ -188,7 +189,7 @@ public class GroovyASTUtils {
     }
 
     public static List<MethodNode> getMethodsForLeftSideOfPropertyExpression(Expression node,
-            ASTNodeVisitor astVisitor) {
+                                                                             ASTNodeVisitor astVisitor) {
         ClassNode classNode = getTypeOfNode(node, astVisitor);
         if (classNode != null) {
             boolean statics = node instanceof ClassExpression;
@@ -235,6 +236,13 @@ public class GroovyASTUtils {
                     return enclosingClass;
                 }
             } else if (var.isDynamicTyped()) {
+                // If Static Type exists, use it
+                if (node.getMetaDataMap() != null) {
+                    Object inferred = node.getMetaDataMap().get(StaticTypesMarker.INFERRED_TYPE);
+                    if (inferred != null) {
+                        return (ClassNode) inferred;
+                    }
+                }
                 ASTNode defNode = GroovyASTUtils.getDefinition(node, false, astVisitor);
                 if (defNode instanceof Variable) {
                     Variable defVar = (Variable) defNode;
