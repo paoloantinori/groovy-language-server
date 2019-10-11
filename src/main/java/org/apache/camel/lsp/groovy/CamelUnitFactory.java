@@ -1,3 +1,22 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright 2019 Prominic.NET, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License
+//
+// Author: Prominic.NET, Inc.
+// No warranty of merchantability or fitness of any kind.
+// Use this software at your own risk.
+////////////////////////////////////////////////////////////////////////////////
 package org.apache.camel.lsp.groovy;
 
 import java.io.File;
@@ -10,40 +29,56 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import net.prominic.groovyls.config.ICompilationUnitFactory;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
 
 import net.prominic.groovyls.compiler.control.GroovyLSCompilationUnit;
 import net.prominic.groovyls.compiler.control.io.StringReaderSourceWithURI;
-import net.prominic.groovyls.config.ICompilationUnitFactory;
 import net.prominic.groovyls.util.FileContentsTracker;
 
 public class CamelUnitFactory implements ICompilationUnitFactory {
-    private static final String FILE_EXTENSION_GROOVY = ".groovy";
+	private static final String FILE_EXTENSION_GROOVY = ".groovy";
 
-    private GroovyLSCompilationUnit compilationUnit;
+	private GroovyLSCompilationUnit compilationUnit;
 
-    public CamelUnitFactory() {
+	public CamelUnitFactory() {
+	}
+
+	protected void addLibraries(CompilerConfiguration config) {
+		ArrayList<String> libraries = new ArrayList<>();
+		String folder = "file:///home/pantinor/libs/";
+		libraries.add(folder + "camel-core-3.0.0-RC1.jar");
+		libraries.add(folder + "camel-core-engine-3.0.0-RC1.jar");
+		libraries.add(folder + "camel-endpointdsl-3.0.0-RC1.jar");
+		libraries.add(folder + "camel-groovy-3.0.0-RC1.jar");
+		libraries.add(folder + "camel-k-loader-groovy-1.0.1.jar");
+		libraries.add(folder + "camel-log-3.0.0-RC1.jar");
+		libraries.add(folder + "camel-main-3.0.0-RC1.jar");
+		libraries.add(folder + "camel-rest-3.0.0-RC1.jar");
+		libraries.add(folder + "camel-seda-3.0.0-RC1.jar");
+		libraries.add(folder + "camel-timer-3.0.0-RC1.jar");
+		libraries.add(folder + "camel-support-3.0.0-RC1.jar");
+		libraries.add(folder + "camel-api-3.0.0-RC1.jar");
+		libraries.add(folder + "camel-util-3.0.0-RC1.jar");
+		libraries.add(folder + "slf4j-api-1.7.28.jar");
+
+
+		config.setClasspathList(libraries);
 	}
 
 	public void invalidateCompilationUnit() {
 		compilationUnit = null;
 	}
 
-	protected void addLibraries(CompilerConfiguration config) {
-		ArrayList<String> libraries = new ArrayList<>();
-		libraries.add("file:///home/pantinor/libs/camel-core-3.0.0-RC1.jar");
-		libraries.add("file:///home/pantinor/libs/camel-k-loader-groovy-1.0.1.jar");
-		
-		config.setClasspathList(libraries);
-	}
-
 	public GroovyLSCompilationUnit create(Path workspaceRoot, FileContentsTracker fileContentsTracker) {
-		CompilerConfiguration config = new CompilerConfiguration();
-		config.setDebug(true);
-		addLibraries(config);
 		Set<URI> changedUris = fileContentsTracker.getChangedURIs();
+
 		if (compilationUnit == null) {
+			CompilerConfiguration config = new CompilerConfiguration();
+			config.setDebug(true);
+			config.setVerbose(true);
+			addLibraries(config);
 			compilationUnit = new GroovyLSCompilationUnit(config);
 			//we don't care about changed URIs if there's no compilation unit yet
 			changedUris = null;
@@ -80,7 +115,7 @@ public class CamelUnitFactory implements ICompilationUnitFactory {
 	}
 
 	protected void addDirectoryToCompilationUnit(Path dirPath, GroovyLSCompilationUnit compilationUnit,
-			FileContentsTracker fileContentsTracker, Set<URI> changedUris) {
+												 FileContentsTracker fileContentsTracker, Set<URI> changedUris) {
 		try {
 			if (Files.exists(dirPath)) {
 				Files.walk(dirPath).forEach((filePath) -> {

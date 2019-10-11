@@ -7,7 +7,19 @@
 			"windows": {
 				"command": "./gradlew.bat"
 			},
-			"dependsOn": ["clean", "run_tsc"],
+			"args": ["build"],
+			"dependsOn": ["clean", "build_lsp", "run_tsc"],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "build_lsp",
+			"command": "../gradlew",
+			"windows": {
+				"command": "../gradlew.bat"
+			},
 			"args": ["build"],
 			"group": {
 				"kind": "build",
