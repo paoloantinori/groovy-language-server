@@ -36,6 +36,7 @@ import org.codehaus.groovy.control.SourceUnit;
 import net.prominic.groovyls.compiler.control.GroovyLSCompilationUnit;
 import net.prominic.groovyls.compiler.control.io.StringReaderSourceWithURI;
 import net.prominic.groovyls.util.FileContentsTracker;
+import org.codehaus.groovy.control.customizers.ImportCustomizer;
 
 public class CamelUnitFactory implements ICompilationUnitFactory {
 	private static final String FILE_EXTENSION_GROOVY = ".groovy";
@@ -75,10 +76,7 @@ public class CamelUnitFactory implements ICompilationUnitFactory {
 		Set<URI> changedUris = fileContentsTracker.getChangedURIs();
 
 		if (compilationUnit == null) {
-			CompilerConfiguration config = new CompilerConfiguration();
-			config.setDebug(true);
-			config.setVerbose(true);
-			addLibraries(config);
+			CompilerConfiguration config = newCamelCompilerConfiguration();
 			compilationUnit = new GroovyLSCompilationUnit(config);
 			//we don't care about changed URIs if there's no compilation unit yet
 			changedUris = null;
@@ -112,6 +110,23 @@ public class CamelUnitFactory implements ICompilationUnitFactory {
 		}
 
 		return compilationUnit;
+	}
+
+	protected CompilerConfiguration newCamelCompilerConfiguration() {
+		CompilerConfiguration config = new CompilerConfiguration();
+
+		config.setDebug(true);
+		config.setVerbose(true);
+
+		addLibraries(config);
+		addImportCustomizers(config);
+		return config;
+	}
+
+	protected void addImportCustomizers(CompilerConfiguration config) {
+		ImportCustomizer customizer = new ImportCustomizer();
+		customizer.addStarImports("org.apache.camel.k.loader.groovy.dsl");
+		config.addCompilationCustomizers(customizer);
 	}
 
 	protected void addDirectoryToCompilationUnit(Path dirPath, GroovyLSCompilationUnit compilationUnit,
