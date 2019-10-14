@@ -21,7 +21,7 @@ task build(type: Exec) {
 }
 
 task copyJar(type: Copy) {
-    from "$projectDir/../build/libs/groovy-language-server.jar"
+    from "$projectDir/../build/libs/groovy-language-server-all.jar"
     into "$buildDir/bin"
 }
 

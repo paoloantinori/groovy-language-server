@@ -30,7 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import net.prominic.groovyls.config.ICompilationUnitFactory;
+import groovy.util.DelegatingScript;
+import org.apache.camel.lsp.groovy.CamelScriptCompilationCustomizer;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
 
@@ -126,13 +127,26 @@ public class CustomizableUnitFactory implements ICompilationUnitFactory {
 
 		addLibraries(config);
 		addImportCustomizers(config);
+		//addScriptBaseClass(config);
+		//addCompilationCustomizers(config);
+
 		return config;
+	}
+
+	protected void addCompilationCustomizers(CompilerConfiguration config) {
+		config.addCompilationCustomizers(new CamelScriptCompilationCustomizer());
+	}
+
+	protected void addScriptBaseClass(CompilerConfiguration config) {
+		config.setScriptBaseClass(DelegatingScript.class.getName());
 	}
 
 	// TODO: rename or remove if unused
 	protected void addImportCustomizers(CompilerConfiguration config) {
 		ImportCustomizer customizer = new ImportCustomizer();
-		customizer.addStarImports("org.apache.camel.k.loader.groovy.dsl");
+		customizer.addImports("org.apache.camel.k.loader.groovy.dsl.IntegrationConfiguration");
+		customizer.addStarImports("org.apache.camel");
+		customizer.addStarImports("org.apache.camel.spi");
 		config.addCompilationCustomizers(customizer);
 	}
 
