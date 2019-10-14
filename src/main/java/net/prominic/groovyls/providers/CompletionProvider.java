@@ -33,10 +33,8 @@ import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.PropertyNode;
-import org.codehaus.groovy.ast.expr.Expression;
-import org.codehaus.groovy.ast.expr.MethodCallExpression;
-import org.codehaus.groovy.ast.expr.PropertyExpression;
-import org.codehaus.groovy.ast.expr.VariableExpression;
+import org.codehaus.groovy.ast.expr.*;
+import org.codehaus.groovy.control.CompilationUnit;
 import org.eclipse.lsp4j.CompletionContext;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
@@ -51,6 +49,7 @@ import net.prominic.groovyls.util.GroovyLanguageServerUtils;
 
 public class CompletionProvider {
 	private ASTNodeVisitor ast;
+	private CompilationUnit compilationUnit;
 
 	public CompletionProvider(ASTNodeVisitor ast) {
 		this.ast = ast;
@@ -82,6 +81,8 @@ public class CompletionProvider {
 			populateItemsFromMethodCallExpression((MethodCallExpression) parentNode, position, items);
 		} else if (offsetNode instanceof VariableExpression) {
 			populateItemsFromVariableExpression((VariableExpression) offsetNode, position, items);
+		} else if (offsetNode instanceof ClosureExpression) {
+			populateItemsFromClosureExpression((ClosureExpression) offsetNode, position, items);
 		}
 
 		return CompletableFuture.completedFuture(Either.forLeft(items));
@@ -101,14 +102,64 @@ public class CompletionProvider {
 		populateItemsFromExpression(methodCallExpr.getObjectExpression(), memberName, items);
 	}
 
-	private void populateItemsFromVariableExpression(VariableExpression varExpr, Position position,
-			List<CompletionItem> items) {
+	private void populateItemsFromVariableExpression(VariableExpression varExpr, Position position, List<CompletionItem> items) {
 		Range varRange = GroovyLanguageServerUtils.astNodeToRange(varExpr);
 		String memberName = getMemberName(varExpr.getName(), varRange, position);
 		ClassNode enclosingClass = GroovyASTUtils.getEnclosingClass(varExpr, ast);
 		populateItemsFromPropertiesAndFields(enclosingClass.getProperties(), enclosingClass.getFields(), memberName,
 				items);
+		delegateScriptContextToObject(enclosingClass, items, "org.apache.camel.k.loader.groovy.dsl.IntegrationConfiguration");
 		populateItemsFromMethods(enclosingClass.getMethods(), memberName, items);
+	}
+
+	private void delegateScriptContextToObject(ClassNode enclosingClass, List<CompletionItem> items, String className) {
+		if(enclosingClass.getSuperClass().getName().equals("groovy.lang.Script")){
+			populateItemsFromMethods(extractMethodsFromClass(className), "", items);
+		}
+	}
+
+	private List<MethodNode> extractMethodsFromClass(String className){
+		ClassLoader cl = this.compilationUnit.getClassLoader();
+		Class clazz = null;
+		try {
+			clazz = cl.loadClass(className);
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+		ClassNode traitClassNode = new ClassNode(clazz);
+		return traitClassNode.getMethods()
+				.stream()
+				.filter(m -> !m.getName().startsWith("$"))
+				.collect(Collectors.toList());
+	}
+
+	private void populateItemsFromClosureExpression(ClosureExpression closExpr, Position position, List<CompletionItem> items) {
+		ASTNode parent = ast.getParent(ast.getParent(closExpr));
+		if(parent instanceof MethodCallExpression){
+			MethodCallExpression methodExpression = (MethodCallExpression) parent;
+			String name =  methodExpression.getMethodAsString();
+			List<MethodNode> methodNodes = new ArrayList();
+
+			switch(name){
+				case "context":
+					methodNodes = extractMethodsFromClass("org.apache.camel.k.loader.groovy.dsl.ContextConfiguration");
+					break;
+				case "registry":
+					methodNodes = extractMethodsFromClass("org.apache.camel.k.loader.groovy.dsl.RegistryConfiguration");
+					break;
+				case "components":
+					methodNodes = extractMethodsFromClass("org.apache.camel.k.loader.groovy.dsl.ComponentsConfiguration");
+					break;
+				case "beans":
+					methodNodes = extractMethodsFromClass("org.apache.camel.k.loader.groovy.dsl.BeansConfiguration");
+					break;
+				case "rest":
+					methodNodes = extractMethodsFromClass("org.apache.camel.k.loader.groovy.dsl.RestConfiguration");
+					break;
+			}
+
+			populateItemsFromMethods(methodNodes, "", items);
+		}
 	}
 
 	private void populateItemsFromPropertiesAndFields(List<PropertyNode> properties, List<FieldNode> fields,
@@ -184,5 +235,9 @@ public class CompletionProvider {
 			}
 		}
 		return "";
+	}
+
+	public void setCompilationUnit(CompilationUnit unit) {
+		this.compilationUnit = unit;
 	}
 }
