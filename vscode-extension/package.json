@@ -74,6 +74,11 @@
           ],
           "default": null,
           "description": "Specifies the folder path to the JDK. Use this setting if the extension cannot find Java automatically."
+        },
+        "groovy.additional.libraries": {
+          "type": "string",
+          "default": null,
+          "description": "Specifies the folder path to additional libraries to be used to resolve classes."
         }
       }
     }

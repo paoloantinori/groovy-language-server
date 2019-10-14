@@ -18,8 +18,11 @@
 // Use this software at your own risk.
 ////////////////////////////////////////////////////////////////////////////////
 import findJava from "./utils/findJava";
+import getAdditionalClasspathFolder from "./utils/extClassPath";
 import * as path from "path";
 import * as vscode from "vscode";
+
+
 import {
   LanguageClient,
   LanguageClientOptions,
@@ -126,9 +129,13 @@ function startLanguageServer() {
     { location: vscode.ProgressLocation.Window },
     progress => {
       return new Promise((resolve, reject) => {
-        progress.report({ message: INITIALIZING_MESSAGE });
+		progress.report({ message: INITIALIZING_MESSAGE });
+		let extClassPath = getAdditionalClasspathFolder();
         let clientOptions: LanguageClientOptions = {
-          documentSelector: [{ scheme: "file", language: "groovy" }],
+		  documentSelector: [{ scheme: "file", language: "groovy" }],
+		  initializationOptions: [{
+			"ADDITIONAL_CLASSPATH_FOLDER": `${extClassPath}`
+		  }],
           synchronize: {
             configurationSection: "groovy"
           },
@@ -145,10 +152,10 @@ function startLanguageServer() {
             //this is just the default behavior, but we need to define both
             protocol2Code: value => vscode.Uri.parse(value)
           }
-        };
+		};
         let args = [
           "-jar",
-          path.resolve(extensionContext.extensionPath, "bin", "groovy-language-server-all.jar")
+          path.resolve(extensionContext.extensionPath, "bin", "groovy-language-server.jar")
         ];
         //uncomment to allow a debugger to attach to the language server
         args.unshift("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005,quiet=y");
@@ -158,7 +165,7 @@ function startLanguageServer() {
         };
         console.log("Groovy LSP Executable: " + javaPath);
         console.log("Groovy LSP args: " + args);
-        
+
         languageClient = new LanguageClient(
           "groovy",
           "Groovy Language Server",
@@ -166,7 +173,7 @@ function startLanguageServer() {
           clientOptions
         );
         languageClient.onReady().then(
-          ()=> {}, 
+          ()=> {},
           error => {
             resolve();
             vscode.window.showErrorMessage(STARTUP_ERROR);

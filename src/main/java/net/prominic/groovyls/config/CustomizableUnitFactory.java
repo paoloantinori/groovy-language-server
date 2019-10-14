@@ -17,9 +17,10 @@
 // No warranty of merchantability or fitness of any kind.
 // Use this software at your own risk.
 ////////////////////////////////////////////////////////////////////////////////
-package org.apache.camel.lsp.groovy;
+package net.prominic.groovyls.config;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -38,33 +39,28 @@ import net.prominic.groovyls.compiler.control.io.StringReaderSourceWithURI;
 import net.prominic.groovyls.util.FileContentsTracker;
 import org.codehaus.groovy.control.customizers.ImportCustomizer;
 
-public class CamelUnitFactory implements ICompilationUnitFactory {
+public class CustomizableUnitFactory implements ICompilationUnitFactory {
 	private static final String FILE_EXTENSION_GROOVY = ".groovy";
 
 	private GroovyLSCompilationUnit compilationUnit;
+	private File additionalLibrariesFolder;
 
-	public CamelUnitFactory() {
+	public CustomizableUnitFactory() {
 	}
 
 	protected void addLibraries(CompilerConfiguration config) {
 		ArrayList<String> libraries = new ArrayList<>();
-		String folder = "file:///home/pantinor/libs/";
-		libraries.add(folder + "camel-core-3.0.0-RC1.jar");
-		libraries.add(folder + "camel-core-engine-3.0.0-RC1.jar");
-		libraries.add(folder + "camel-endpointdsl-3.0.0-RC1.jar");
-		libraries.add(folder + "camel-groovy-3.0.0-RC1.jar");
-		libraries.add(folder + "camel-k-loader-groovy-1.0.1.jar");
-		libraries.add(folder + "camel-log-3.0.0-RC1.jar");
-		libraries.add(folder + "camel-main-3.0.0-RC1.jar");
-		libraries.add(folder + "camel-rest-3.0.0-RC1.jar");
-		libraries.add(folder + "camel-seda-3.0.0-RC1.jar");
-		libraries.add(folder + "camel-timer-3.0.0-RC1.jar");
-		libraries.add(folder + "camel-support-3.0.0-RC1.jar");
-		libraries.add(folder + "camel-api-3.0.0-RC1.jar");
-		libraries.add(folder + "camel-util-3.0.0-RC1.jar");
-		libraries.add(folder + "slf4j-api-1.7.28.jar");
-
-
+		if (additionalLibrariesFolder != null) {
+			File[] jars = additionalLibrariesFolder.listFiles(new FilenameFilter(){
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.toLowerCase().endsWith(".jar");
+				}
+			});
+			for (File jar : jars) {
+				libraries.add(jar.getPath());
+			}
+		}
 		config.setClasspathList(libraries);
 	}
 
@@ -72,11 +68,21 @@ public class CamelUnitFactory implements ICompilationUnitFactory {
 		compilationUnit = null;
 	}
 
+	public void setAdditionalLibsFolder(String path) {
+		if (path != null) {
+			File f = new File(path);
+			if (f.exists() && f.isDirectory() && f.canRead()) {
+				this.additionalLibrariesFolder = f;
+				invalidateCompilationUnit();
+			}
+		}
+	}
+
 	public GroovyLSCompilationUnit create(Path workspaceRoot, FileContentsTracker fileContentsTracker) {
 		Set<URI> changedUris = fileContentsTracker.getChangedURIs();
 
 		if (compilationUnit == null) {
-			CompilerConfiguration config = newCamelCompilerConfiguration();
+			CompilerConfiguration config = newCustomizableCompilerConfiguration();
 			compilationUnit = new GroovyLSCompilationUnit(config);
 			//we don't care about changed URIs if there's no compilation unit yet
 			changedUris = null;
@@ -112,7 +118,7 @@ public class CamelUnitFactory implements ICompilationUnitFactory {
 		return compilationUnit;
 	}
 
-	protected CompilerConfiguration newCamelCompilerConfiguration() {
+	protected CompilerConfiguration newCustomizableCompilerConfiguration() {
 		CompilerConfiguration config = new CompilerConfiguration();
 
 		config.setDebug(true);
@@ -123,6 +129,7 @@ public class CamelUnitFactory implements ICompilationUnitFactory {
 		return config;
 	}
 
+	// TODO: rename or remove if unused
 	protected void addImportCustomizers(CompilerConfiguration config) {
 		ImportCustomizer customizer = new ImportCustomizer();
 		customizer.addStarImports("org.apache.camel.k.loader.groovy.dsl");
