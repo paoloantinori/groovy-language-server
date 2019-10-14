@@ -28,24 +28,20 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import org.codehaus.groovy.ast.ASTNode;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.PropertyNode;
+import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.control.CompilationUnit;
-import org.eclipse.lsp4j.CompletionContext;
-import org.eclipse.lsp4j.CompletionItem;
-import org.eclipse.lsp4j.CompletionList;
-import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.Range;
-import org.eclipse.lsp4j.TextDocumentIdentifier;
+import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import net.prominic.groovyls.compiler.ast.ASTNodeVisitor;
 import net.prominic.groovyls.compiler.util.GroovyASTUtils;
 import net.prominic.groovyls.util.GroovyLanguageServerUtils;
+import org.reflections.Reflections;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.util.ClasspathHelper;
+import org.reflections.util.ConfigurationBuilder;
+import org.reflections.util.FilterBuilder;
 
 public class CompletionProvider {
 	private ASTNodeVisitor ast;
@@ -83,6 +79,8 @@ public class CompletionProvider {
 			populateItemsFromVariableExpression((VariableExpression) offsetNode, position, items);
 		} else if (offsetNode instanceof ClosureExpression) {
 			populateItemsFromClosureExpression((ClosureExpression) offsetNode, position, items);
+		} else if (offsetNode instanceof ImportNode) {
+			populateItemsFromImportExpression((ImportNode) offsetNode, position, items);
 		}
 
 		return CompletableFuture.completedFuture(Either.forLeft(items));
@@ -96,10 +94,38 @@ public class CompletionProvider {
 	}
 
 	private void populateItemsFromMethodCallExpression(MethodCallExpression methodCallExpr, Position position,
-			List<CompletionItem> items) {
+													   List<CompletionItem> items) {
 		Range methodRange = GroovyLanguageServerUtils.astNodeToRange(methodCallExpr.getMethod());
 		String memberName = getMemberName(methodCallExpr.getMethodAsString(), methodRange, position);
 		populateItemsFromExpression(methodCallExpr.getObjectExpression(), memberName, items);
+	}
+	private void populateItemsFromImportExpression(ImportNode importNode, Position position,
+													   List<CompletionItem> items) {
+		String packageName = importNode.getClassName().substring(0, importNode.getClassName().lastIndexOf('.'));
+
+		List<ClassLoader> classLoadersList = new ArrayList<>();
+		classLoadersList.add(ClasspathHelper.contextClassLoader());
+		classLoadersList.add(ClasspathHelper.staticClassLoader());
+		classLoadersList.add(this.compilationUnit.getClassLoader());
+
+		Reflections reflections = new Reflections(new ConfigurationBuilder()
+				.setScanners(new SubTypesScanner(false /* don't exclude Object.class */))
+				.setUrls(ClasspathHelper.forClassLoader(classLoadersList.toArray(new ClassLoader[0])))
+				.filterInputsBy(new FilterBuilder().include(FilterBuilder.prefix(packageName))));
+
+		Set<String> allTypes = reflections.getAllTypes();
+		List<CompletionItem> collect = allTypes.stream()
+				.map(pak -> {
+					return pak.substring(pak.indexOf(packageName)+packageName.length()+1);
+				})
+
+				.map(pak -> {
+			CompletionItem item = new CompletionItem();
+			item.setLabel(pak);
+			item.setKind(CompletionItemKind.Class);
+			return item;
+		}).collect(Collectors.toList());
+		items.addAll(collect);
 	}
 
 	private void populateItemsFromVariableExpression(VariableExpression varExpr, Position position, List<CompletionItem> items) {
@@ -232,6 +258,17 @@ public class CompletionProvider {
 			int length = position.getCharacter() - range.getStart().getCharacter();
 			if (length > 0 && length <= memberName.length()) {
 				return memberName.substring(0, length);
+			}
+		}
+		return "";
+	}
+
+	private String getPackage( String input, Range range, Position position) {
+		if (position.getLine() == range.getStart().getLine()
+				&& position.getCharacter() > range.getStart().getCharacter()) {
+			int length = position.getCharacter() - range.getStart().getCharacter();
+			if (length > 0) {
+				return input.substring(position.getLine()-length, length);
 			}
 		}
 		return "";
