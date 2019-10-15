@@ -136,6 +136,7 @@ public class CompletionProvider {
 				items);
 		delegateScriptContextToObject(enclosingClass, items, "org.apache.camel.k.loader.groovy.dsl.IntegrationConfiguration");
 		populateItemsFromMethods(enclosingClass.getMethods(), memberName, items);
+        decorateLabels(items);
 	}
 
 	private void delegateScriptContextToObject(ClassNode enclosingClass, List<CompletionItem> items, String className) {
@@ -185,6 +186,25 @@ public class CompletionProvider {
 			}
 
 			populateItemsFromMethods(methodNodes, "", items);
+			decorateLabels(items);
+		}
+	}
+
+	private void decorateLabels(List<CompletionItem> items) {
+		for(CompletionItem item : items){
+			if("getMetaClass".equals(item.getLabel()) ||
+					"setMetaClass".equals(item.getLabel()) ||
+					"getProperty".equals(item.getLabel()) ||
+					"setProperty".equals(item.getLabel()) ||
+                    "invokeMethod".equals(item.getLabel()) ||
+                    "main".equals(item.getLabel()) ||
+                    "run".equals(item.getLabel())
+            ){
+				item.setInsertText(item.getLabel());
+				item.setSortText("~" + item.getLabel());
+				item.setKind(CompletionItemKind.Interface);
+			}
+
 		}
 	}
 
