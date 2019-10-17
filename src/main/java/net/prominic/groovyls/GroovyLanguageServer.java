@@ -91,7 +91,7 @@ public class GroovyLanguageServer implements LanguageServer, LanguageClientAware
 					if (e instanceof JsonPrimitive) {
 						JsonPrimitive jp = (JsonPrimitive)e;
 						if (compilationUnitFactory instanceof CustomizableUnitFactory) {
-							((CustomizableUnitFactory)compilationUnitFactory).setAdditionalLibsFolder(jp.getAsString());
+							((CustomizableUnitFactory)compilationUnitFactory).setAdditionalLibsFolders(jp.getAsString());
 						}
 					}
 				}

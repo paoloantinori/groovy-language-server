@@ -23,7 +23,7 @@ public class CamelScriptCompilationCustomizer extends CompilationCustomizer {
         if (classNode.getSuperClass().getName().equals("groovy.lang.Script")){
             try {
                 ClassLoader cl = generatorContext.getCompileUnit().getClassLoader();
-                Class clazz = cl.loadClass("org.apache.camel.k.loader.groovy.dsl.IntegrationConfiguration");
+                Class<?> clazz = cl.loadClass("org.apache.camel.k.loader.groovy.dsl.IntegrationConfiguration");
                 traitClassNode = new ClassNode(clazz);
                 for(MethodNode method : traitClassNode.getMethods()){
                     classNode.addMethod(method);
