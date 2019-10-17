@@ -44,22 +44,24 @@ public class CustomizableUnitFactory implements ICompilationUnitFactory {
 	private static final String FILE_EXTENSION_GROOVY = ".groovy";
 
 	private GroovyLSCompilationUnit compilationUnit;
-	private File additionalLibrariesFolder;
+	private List<File> additionalLibrariesFolders = new ArrayList<>();
 
 	public CustomizableUnitFactory() {
 	}
 
 	protected void addLibraries(CompilerConfiguration config) {
 		ArrayList<String> libraries = new ArrayList<>();
-		if (additionalLibrariesFolder != null) {
-			File[] jars = additionalLibrariesFolder.listFiles(new FilenameFilter(){
+		for (File folder : additionalLibrariesFolders) {
+			File[] jars = folder.listFiles(new FilenameFilter(){
 				@Override
 				public boolean accept(File dir, String name) {
 					return name.toLowerCase().endsWith(".jar");
 				}
 			});
 			for (File jar : jars) {
-				libraries.add(jar.getPath());
+				if (!libraries.contains(jar.getPath())) {
+					libraries.add(jar.getPath());
+				}
 			}
 		}
 		config.setClasspathList(libraries);
@@ -69,14 +71,18 @@ public class CustomizableUnitFactory implements ICompilationUnitFactory {
 		compilationUnit = null;
 	}
 
-	public void setAdditionalLibsFolder(String path) {
+	public void setAdditionalLibsFolders(String path) {
+		this.additionalLibrariesFolders.clear();
 		if (path != null) {
-			File f = new File(path);
-			if (f.exists() && f.isDirectory() && f.canRead()) {
-				this.additionalLibrariesFolder = f;
-				invalidateCompilationUnit();
+			String[] parts = path.split(";");
+			for (String part : parts) {
+				File f = new File(part.trim());
+				if (f.exists() && f.isDirectory() && f.canRead()) {
+					this.additionalLibrariesFolders.add(f);
+				}
 			}
 		}
+		invalidateCompilationUnit();
 	}
 
 	public GroovyLSCompilationUnit create(Path workspaceRoot, FileContentsTracker fileContentsTracker) {

@@ -78,7 +78,7 @@
         "groovy.additional.libraries": {
           "type": "string",
           "default": null,
-          "description": "Specifies the folder path to additional libraries to be used to resolve classes. (Restart required after changing the value!)"
+          "description": "Specifies paths to additional libraries used to resolve classes. (multiple paths separated by semicolon)"
         }
       }
     }
